@@ -11,5 +11,5 @@ RUN go build
 FROM ubuntu:latest
 COPY --from=builder /build/rabbithole2 /bin/rabbithole
 RUN chmod +x /bin/rabbithole
-WORKDIR /rabbithole/
+WORKDIR /app/
 CMD /bin/rabbithole

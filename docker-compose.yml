@@ -1,10 +1,10 @@
 version: '3.8'
 services:
   app:
-    image: esamarathon/rabbithole2:latest
+    image: esamarathon/rabbithole:2
     build: .
     volumes:
-      - ./appsettings.json:/rabbithole/appsetings.json:ro
+      - ./appsettings.json:/app/appsettings.json:ro
     depends_on:
       - postgres
 

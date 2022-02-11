@@ -56,5 +56,10 @@ func (s *Settings) SetDefaults() {
 	s.ConnectionString = "user=postgres password=password dbname=rabbithole sslmode=verify-full"
 	s.RabbitMQ.ConnectionString = "amqp://localhost/"
 	s.RabbitMQ.ChannelName = "rabbithole"
-	s.RabbitMQ.Bindings = make([]Binding, 0, 8)
+	s.RabbitMQ.Bindings = []Binding{
+		{
+			Exchange: "demo",
+			Topic:    "#",
+		},
+	}
 }
