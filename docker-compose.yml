@@ -1,0 +1,18 @@
+version: '3.8'
+services:
+  app:
+    image: esamarathon/rabbithole2:latest
+    build: .
+    volumes:
+      - ./appsettings.json:/rabbithole/appsetings.json:ro
+    depends_on:
+      - postgres
+
+  db:
+    image: postgres:12
+    ports:
+      - 5432:5432
+    environment:
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=mysecretpassword
+      - POSTGRES_DB=rabbithole
