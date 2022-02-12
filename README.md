@@ -1,5 +1,9 @@
 # Rabbithole
-RabbitMQ to Postgres sink. Stores messages in a queriable jsonb column.
+RabbitMQ to Postgres sink. Stores messages in a queryable jsonb column.
+
+This is a complete rewrite using go instead of the originals C#.
+The original encountered a weird issue where it was after almost two years of flawless service no longer able to connect to the server.
+As this has never been a issue with any go service written and the original was kind of stuck on .net core 2.2, i figured a quick rewrite would be faster than spending more time debugging.
 
 <img src="https://raw.githubusercontent.com/esamarathon/rabbithole-go/master/Rabbithole.png" alt="example visualization used by ESA" />
 
@@ -22,29 +26,19 @@ It connects to a RabbitMQ server and a PostgreSQL server and stores the messages
 The messages stored are configurable using `/app/appsettings.json` or environment variables.
 
 ## Configuration ##
-Application comes with the following default configuration (found in `/app/appsettings.default.json`)
+Application comes with the following equivalent default configuration
 ````json
 {
     "Logging": {
-        "LogLevel": {
-            "Default": "Information",
-            "Microsoft": "Error"
-        },
-        "Console": {
-            "IncludeScopes": true
-        }
+        "Debug": false
     },
-    "ConnectionStrings": {
-        "Events": "User ID=postgres;Password=password;Host=localhost;Port=5432;Database=rabbithole;"
-    },
+    "ConnectionString": "User ID=postgres;Password=password;Host=localhost;Port=5432;Database=rabbithole;",
     "RabbitMQ": {
-        "HostName": "localhost",
-        "UserName": "guest",
-        "Password": "guest",
-        "VirtualHost": "esa_dev",
+        "ConnectionString": "amqp://localhost/",
+        "ChannelName": "rabbithole",
         "Bindings": [
             {
-                "Exchange": "demo1",
+                "Exchange": "demo",
                 "Topic": "#"
             }
         ]
@@ -53,18 +47,3 @@ Application comes with the following default configuration (found in `/app/appse
 ````
 This showcases all possible settings and works fine for most development work.
 To override any settings, simply add a appsettings.json file with the overriding settings and it will load during startup.
-Additionally, using the rules provided at https://docs.microsoft.com/en-us/aspnet/core/fundamentals/configuration/?view=aspnetcore-2.2#environment-variables-configuration-provider, 
-you can also override settings using environment variables prefixed with RABBITHOLE_.
-Example docker-compose.yml file:
-
-````yaml
-version: "3.7"
-services:
-  app:
-    environment:
-      - RABBITHOLE_Logging__LogLevel__Default=Debug
-      - RABBITHOLE_RabbitMQ__HostName=rabbit
-      - RABBITHOLE_ConnectionStrings__Events=User ID=postgres;Password=password;Host=db;Port=5432;Database=rabbithole
-````
-
-Please make note of the double underscores between keys.
