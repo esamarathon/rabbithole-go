@@ -9,7 +9,10 @@ COPY . ./
 RUN go build 
 
 FROM ubuntu:latest
+WORKDIR /app/
+RUN apt-get update && \
+    apt-get install -y ca-certificates && \
+    apt-get clean
 COPY --from=builder /build/rabbithole2 /bin/rabbithole
 RUN chmod +x /bin/rabbithole
-WORKDIR /app/
 CMD /bin/rabbithole
