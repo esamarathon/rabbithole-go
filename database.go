@@ -30,7 +30,7 @@ type Event struct {
 	Received   time.Time              `db:"timestamp" json:"Timestamp"`
 	Exchange   string                 `db:"exchange"`
 	RoutingKey string                 `db:"routing_key"`
-	Content    map[string]interface{} `db:"content"`
+	Content    any                    `db:"content"`
 }
 
 func ConnectToDatabase(connectionString string) (repo SqlRepository) {

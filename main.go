@@ -47,18 +47,16 @@ func main() {
 	log.Println("End of message queue.")
 }
 
-func Transform(messages <-chan amqp.Delivery, events chan Event) {
+func Transform(messages <-chan amqp.Delivery, events chan<- Event) {
 	defer close(events)
 
 	for msg := range messages {
 		log.Println("Incoming message.")
-		content := make(map[string]interface{})
+		var content any
+		content = make(map[string]interface{})
 		err := json.Unmarshal(msg.Body, &content)
 		if err != nil {
-			//Failed to unserialize the event. So the message is busted and needs to be discarded.
-			log.Println("Discarding invalid message from AMQP.")
-			msg.Nack(false, false)
-			continue;
+			content = string(msg.Body) //Not a JSON object body, so just dump value.
 		}
 
 		event := Event{
