@@ -1,0 +1,20 @@
+name: publish
+
+on: [push]
+
+jobs:
+  publish-web-app-image:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - name: Login to GitHub Container Registry
+        uses: docker/login-action@v1
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build docker image for application
+        run: |
+          docker compose build app
+          docker push ghcr.io/esamarathon/rabbithole:latest
