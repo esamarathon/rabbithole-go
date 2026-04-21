@@ -15,7 +15,6 @@ type SqlRepository struct {
 	eventInsertStmt *sqlx.Stmt
 }
 
-
 var schema = `
 CREATE TABLE IF NOT EXISTS public."Events" (
     id uuid NOT NULL PRIMARY KEY,
@@ -28,7 +27,7 @@ CREATE TABLE IF NOT EXISTS public."Events" (
 
 type Event struct {
 	Id         uuid.UUID              `db:"id"`
-	Recieved   time.Time              `db:"timestamp"`
+	Received   time.Time              `db:"timestamp" json:"Timestamp"`
 	Exchange   string                 `db:"exchange"`
 	RoutingKey string                 `db:"routing_key"`
 	Content    map[string]interface{} `db:"content"`
@@ -61,6 +60,6 @@ func (repo SqlRepository) InsertEvent(e Event) error {
 		return err
 	}
 
-	_, err = repo.eventInsertStmt.Exec(e.Id.String(), e.Recieved.Format(time.RFC3339), e.Exchange, e.RoutingKey, jsoncontent)
+	_, err = repo.eventInsertStmt.Exec(e.Id.String(), e.Received.Format(time.RFC3339), e.Exchange, e.RoutingKey, jsoncontent)
 	return err
 }
