@@ -10,10 +10,11 @@ import (
 	_ "github.com/lib/pq"
 )
 
-type Repository struct {
+type SqlRepository struct {
 	db              *sqlx.DB
 	eventInsertStmt *sqlx.Stmt
 }
+
 
 var schema = `
 CREATE TABLE IF NOT EXISTS public."Events" (
@@ -33,9 +34,9 @@ type Event struct {
 	Content    map[string]interface{} `db:"content"`
 }
 
-func ConnectToDatabase(settings Settings) (repo Repository) {
+func ConnectToDatabase(connectionString string) (repo SqlRepository) {
 	var err error
-	repo.db, err = sqlx.Connect("postgres", settings.ConnectionString)
+	repo.db, err = sqlx.Connect("postgres", connectionString)
 	if err != nil {
 		log.Fatalln("Unable to connect to database: ", err)
 	}
@@ -54,7 +55,7 @@ func ConnectToDatabase(settings Settings) (repo Repository) {
 	return
 }
 
-func (repo Repository) InsertEvent(e Event) error {
+func (repo SqlRepository) InsertEvent(e Event) error {
 	jsoncontent, err := json.Marshal(e.Content)
 	if err != nil {
 		return err

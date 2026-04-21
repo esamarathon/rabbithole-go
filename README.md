@@ -32,7 +32,7 @@ Application comes with the following equivalent default configuration
     "Logging": {
         "Debug": false
     },
-    "ConnectionString": "User ID=postgres;Password=password;Host=localhost;Port=5432;Database=rabbithole;",
+    "ConnectionString": "", //Deprecated. Use a sql output instead
     "RabbitMQ": {
         "ConnectionString": "amqp://localhost/",
         "ChannelName": "rabbithole",
@@ -42,7 +42,13 @@ Application comes with the following equivalent default configuration
                 "Topic": "#"
             }
         ]
-    }
+    },
+    "Outputs": [
+        {
+            "Kind": "sql",
+            "ConnectionString": "User ID=postgres;Password=password;Host=localhost;Port=5432;Database=rabbithole;"
+        }
+    ]
 }
 ````
 This showcases all possible settings and works fine for most development work.

@@ -1,2 +1,6 @@
+.vscode/
+
+*.log
+
 rabbithole2
 appsettings.json

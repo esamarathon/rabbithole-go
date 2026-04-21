@@ -3,28 +3,63 @@ package main
 import (
 	"encoding/json"
 	"log"
+	"sync"
 	"time"
 
 	"github.com/google/uuid"
+	"github.com/streadway/amqp"
 )
 
 func main() {
-	log.Println("Starting CrowdControl Coin bridge.")
+	log.Println("Starting Rabbithole")
 	defer func() {
 		log.Println("Shutting down.")
 	}()
 
 	settings := LoadSettings()
+	settings.Migrate()
+
 
 	log.Println("Settings: ")
 	log.Println(settings)
 
-	repo := ConnectToDatabase(settings)
-	stream := ConnectToRabbitMQ(settings)
+	amqpConn := Connect(settings)
 
-	log.Println("Setup complete. Starting message handling loop.")
-	ListenAndServe(stream, repo)
+	wg := new(sync.WaitGroup)
+
+	for _, output := range settings.Outputs {
+		wg.Add(1)
+		go HandleOutput(output, amqpConn, settings.RabbitMQ, wg)
+	}
+
+	wg.Wait()
 	log.Println("End of message queue.")
+}
+
+
+
+func HandleOutput(output Output, amqpConn *amqp.Connection, settings RabbitSettings, wg *sync.WaitGroup) {
+	repo := MakeRepository(output)
+	log.Printf("Setup complete. Starting message handling loop for %s, \n", output.Kind)
+	stream := Listen(amqpConn, settings)
+	ListenAndServe(stream, repo)
+	wg.Done()
+}
+
+
+type Repository interface {
+	InsertEvent(e Event) error
+}
+
+func MakeRepository(output Output) Repository {
+	var repo Repository
+	switch output.Kind {
+	case "sql": repo = ConnectToDatabase(output.ConnectionString)
+	case "file": repo = CreateFileRepository(output.ConnectionString)
+	default: panic("Unknown output kind. Valid kinds: [sql,file]")
+	}
+
+	return repo;
 }
 
 func ListenAndServe(stream RabbitStream, repo Repository) {

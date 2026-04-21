@@ -16,3 +16,16 @@ services:
       - POSTGRES_USER=postgres
       - POSTGRES_PASSWORD=mysecretpassword
       - POSTGRES_DB=rabbithole
+
+
+  rabbitmq:
+    image: rabbitmq:3-management
+    ports:
+      - "5671:5671"
+      - "5672:5672"
+      - "15671:15671"
+      - "15672:15672"
+    environment:
+      - RABBITMQ_DEFAULT_USER=rabbit
+      - RABBITMQ_DEFAULT_PASS=password1
+      - RABBITMQ_DEFAULT_VHOST=default

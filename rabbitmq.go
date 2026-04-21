@@ -6,34 +6,14 @@ import (
 	"github.com/streadway/amqp"
 )
 
-func ConnectToRabbitMQ(settings Settings) RabbitStream {
-	conn, err := amqp.Dial(settings.RabbitMQ.ConnectionString)
-	if err != nil {
-		log.Fatal(err, "Failed to open connection to amqp server.")
-	}
-
-	// name
-	// durable
-	// delete when unused
-	// exclusive
-	// no-wait
-	// arguments
+func Listen(conn *amqp.Connection, settings RabbitSettings) RabbitStream {
 	ch, q := PrepareListeningQueue(conn, settings)
-
-	for _, b := range settings.RabbitMQ.Bindings {
-		err = ch.ExchangeDeclare(b.Exchange, amqp.ExchangeTopic, true, true, false, false, nil)
-		if err != nil {
-			log.Fatal("Failed to declare exchange. ", err)
-		}
-
-		if err != nil {
-			log.Fatal("Unable to declare exchange")
-		}
-
+	for _, b := range settings.Bindings {
+		DeclareExchange(ch, b)
 		ch.QueueBind(q.Name, b.Topic, b.Exchange, false, nil)
 	}
 
-	msgs, err := ch.Consume(
+	msgs, _ := ch.Consume(
 		q.Name, // queue
 		"",     // consumer
 		false,  // auto-ack
@@ -50,14 +30,37 @@ func ConnectToRabbitMQ(settings Settings) RabbitStream {
 	}
 }
 
-func PrepareListeningQueue(conn *amqp.Connection, settings Settings) (*amqp.Channel, amqp.Queue) {
+func DeclareExchange(ch *amqp.Channel, b Binding) {
+	// name
+	// durable
+	// delete when unused
+	// exclusive
+	// no-wait
+	// arguments
+	err := ch.ExchangeDeclare(b.Exchange, amqp.ExchangeTopic, true, true, false, false, nil)
+	if err != nil {
+		log.Fatal("Failed to declare exchange. ", err)
+	}
+}
+
+func Connect(settings Settings) (*amqp.Connection) {
+	conn, err := amqp.Dial(settings.RabbitMQ.ConnectionString)
+	if err != nil {
+		log.Fatal(err, "Failed to open connection to amqp server.")
+	}
+	return conn
+}
+
+
+
+func PrepareListeningQueue(conn *amqp.Connection, settings RabbitSettings) (*amqp.Channel, amqp.Queue) {
 	ch, err := conn.Channel()
 	if err != nil {
 		log.Fatal(err, "Failed to open channel.")
 	}
 
 	q, err := ch.QueueDeclare(
-		settings.RabbitMQ.ChannelName,
+		settings.ChannelName,
 		true,
 		false,
 		false,
