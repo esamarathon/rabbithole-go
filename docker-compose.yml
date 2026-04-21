@@ -8,6 +8,16 @@ services:
     depends_on:
       - rabbitmq
 
+  db:
+    image: postgres:12
+    ports:
+      - 5432:5432
+    environment:
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=mysecretpassword
+      - POSTGRES_DB=rabbithole
+
+
   rabbitmq:
     image: rabbitmq:3-management
     ports:
@@ -20,11 +30,3 @@ services:
       - RABBITMQ_DEFAULT_PASS=password1
       - RABBITMQ_DEFAULT_VHOST=default
 
-  db:
-    image: postgres:12
-    ports:
-      - 5432:5432
-    environment:
-      - POSTGRES_USER=postgres
-      - POSTGRES_PASSWORD=mysecretpassword
-      - POSTGRES_DB=rabbithole
