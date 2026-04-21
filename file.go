@@ -7,7 +7,7 @@ import (
 )
 
 type FileRepository struct {
-	file *os.File
+	file    *os.File
 	encoder *json.Encoder
 }
 
@@ -15,9 +15,12 @@ func CreateFileRepository(connectionString string) FileRepository {
 	var file *os.File
 	var err error
 	switch connectionString {
-	case "stdout": file = os.Stdout
-	case "stderr": file = os.Stderr
-	default: file, err = os.OpenFile(connectionString, os.O_WRONLY|os.O_CREATE|os.O_APPEND, 0733)
+	case "stdout":
+		file = os.Stdout
+	case "stderr":
+		file = os.Stderr
+	default:
+		file, err = os.OpenFile(connectionString, os.O_WRONLY|os.O_CREATE|os.O_APPEND, 0733)
 	}
 
 	if err != nil {
@@ -25,11 +28,11 @@ func CreateFileRepository(connectionString string) FileRepository {
 	}
 
 	return FileRepository{
-		file: file,
+		file:    file,
 		encoder: json.NewEncoder(file),
 	}
 }
 
 func (repo FileRepository) InsertEvent(e Event) error {
-	return repo.encoder.Encode(e);
+	return repo.encoder.Encode(e)
 }

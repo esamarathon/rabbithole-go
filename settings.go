@@ -13,7 +13,7 @@ type Settings struct {
 	} `json:"Logging"`
 	ConnectionString string
 	RabbitMQ         RabbitSettings `json:"RabbitMQ"`
-	Outputs []Output `json:"Outputs"`
+	Outputs          []Output       `json:"Outputs"`
 }
 
 func (s Settings) String() string {
@@ -47,7 +47,7 @@ type Binding struct {
 }
 
 type Output struct {
-	Kind string
+	Kind             string
 	ConnectionString string
 }
 
@@ -82,7 +82,7 @@ func (s *Settings) SetDefaults() {
 	}
 	s.Outputs = []Output{
 		{
-			Kind: "sql",
+			Kind:             "sql",
 			ConnectionString: "user=postgres password=password dbname=rabbithole sslmode=verify-full",
 		},
 	}

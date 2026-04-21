@@ -43,15 +43,13 @@ func DeclareExchange(ch *amqp.Channel, b Binding) {
 	}
 }
 
-func Connect(settings Settings) (*amqp.Connection) {
+func Connect(settings Settings) *amqp.Connection {
 	conn, err := amqp.Dial(settings.RabbitMQ.ConnectionString)
 	if err != nil {
 		log.Fatal(err, "Failed to open connection to amqp server.")
 	}
 	return conn
 }
-
-
 
 func PrepareListeningQueue(conn *amqp.Connection, settings RabbitSettings) (*amqp.Channel, amqp.Queue) {
 	ch, err := conn.Channel()

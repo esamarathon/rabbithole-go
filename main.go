@@ -3,6 +3,7 @@ package main
 import (
 	"encoding/json"
 	"log"
+	"os"
 	"sync"
 	"time"
 
@@ -11,6 +12,7 @@ import (
 )
 
 func main() {
+	log.SetOutput(os.Stderr)
 	log.Println("Starting Rabbithole")
 	defer func() {
 		log.Println("Shutting down.")
@@ -19,51 +21,36 @@ func main() {
 	settings := LoadSettings()
 	settings.Migrate()
 
-
-	log.Println("Settings: ")
-	log.Println(settings)
-
-	amqpConn := Connect(settings)
-
-	wg := new(sync.WaitGroup)
-
-	for _, output := range settings.Outputs {
-		wg.Add(1)
-		go HandleOutput(output, amqpConn, settings.RabbitMQ, wg)
+	if (settings.Logging.Debug) {
+		log.Println("Settings: ")
+		log.Println(settings)
 	}
 
+	events := make(chan Event)
+	wg := new(sync.WaitGroup)
+
+	outputChannels := make([]chan<- Event, 0, len(settings.Outputs))
+	for _, output := range settings.Outputs {
+		ch := make(chan Event)
+		wg.Add(1)
+		go HandleOutput(output, ch, wg)
+		outputChannels = append(outputChannels, ch)
+	}
+	go FanOut(events, outputChannels...)
+
+	amqpConn := Connect(settings)
+	stream := Listen(amqpConn, settings.RabbitMQ)
+	go Transform(stream.messages, events)
+	
 	wg.Wait()
+	stream.Close()
 	log.Println("End of message queue.")
 }
 
+func Transform(messages <-chan amqp.Delivery, events chan Event) {
+	defer close(events)
 
-
-func HandleOutput(output Output, amqpConn *amqp.Connection, settings RabbitSettings, wg *sync.WaitGroup) {
-	repo := MakeRepository(output)
-	log.Printf("Setup complete. Starting message handling loop for %s, \n", output.Kind)
-	stream := Listen(amqpConn, settings)
-	ListenAndServe(stream, repo)
-	wg.Done()
-}
-
-
-type Repository interface {
-	InsertEvent(e Event) error
-}
-
-func MakeRepository(output Output) Repository {
-	var repo Repository
-	switch output.Kind {
-	case "sql": repo = ConnectToDatabase(output.ConnectionString)
-	case "file": repo = CreateFileRepository(output.ConnectionString)
-	default: panic("Unknown output kind. Valid kinds: [sql,file]")
-	}
-
-	return repo;
-}
-
-func ListenAndServe(stream RabbitStream, repo Repository) {
-	for msg := range stream.messages {
+	for msg := range messages {
 		log.Println("Incoming message.")
 		content := make(map[string]interface{})
 		err := json.Unmarshal(msg.Body, &content)
@@ -71,18 +58,44 @@ func ListenAndServe(stream RabbitStream, repo Repository) {
 			//Failed to unserialize the event. So the message is busted and needs to be discarded.
 			log.Println("Discarding invalid message from AMQP.")
 			msg.Nack(false, false)
+			continue;
 		}
 
 		event := Event{
 			Id:         uuid.New(),
-			Recieved:   time.Now().UTC(),
+			Received:   time.Now().UTC(),
 			Exchange:   msg.Exchange,
 			RoutingKey: msg.RoutingKey,
 			Content:    content,
 		}
 
-		log.Printf("Storing message from %s (%s): %s", event.Exchange, event.RoutingKey, string(msg.Body))
-		repo.InsertEvent(event)
+		events <- event
 		msg.Ack(false)
+	}
+}
+
+func HandleOutput(output Output, events <-chan Event, wg *sync.WaitGroup) {
+	defer wg.Done()
+
+	repo := MakeRepository(output)
+	log.Printf("Setup complete. Starting message handling loop for %s, \n", output.Kind)
+
+	for event := range events {
+		log.Printf("Storing message from %s (%s)", event.Exchange, event.RoutingKey)
+		repo.InsertEvent(event)
+	}
+}
+
+func FanOut[T interface{}](input <-chan T, outputs ...chan<- T) {
+	defer func() {
+		for _, ch := range outputs {
+			close(ch)
+		}
+	}()
+
+	for val := range input {
+		for _, ch := range outputs {
+			ch <- val
+		}
 	}
 }
