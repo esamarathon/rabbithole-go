@@ -1,2 +1,9 @@
+.vscode/
+
+*.log
+
 rabbithole2
 appsettings.json
+
+
+__debug_bin*

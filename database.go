@@ -10,7 +10,7 @@ import (
 	_ "github.com/lib/pq"
 )
 
-type Repository struct {
+type SqlRepository struct {
 	db              *sqlx.DB
 	eventInsertStmt *sqlx.Stmt
 }
@@ -27,15 +27,15 @@ CREATE TABLE IF NOT EXISTS public."Events" (
 
 type Event struct {
 	Id         uuid.UUID              `db:"id"`
-	Recieved   time.Time              `db:"timestamp"`
+	Received   time.Time              `db:"timestamp" json:"Timestamp"`
 	Exchange   string                 `db:"exchange"`
 	RoutingKey string                 `db:"routing_key"`
-	Content    map[string]interface{} `db:"content"`
+	Content    any                    `db:"content"`
 }
 
-func ConnectToDatabase(settings Settings) (repo Repository) {
+func ConnectToDatabase(connectionString string) (repo SqlRepository) {
 	var err error
-	repo.db, err = sqlx.Connect("postgres", settings.ConnectionString)
+	repo.db, err = sqlx.Connect("postgres", connectionString)
 	if err != nil {
 		log.Fatalln("Unable to connect to database: ", err)
 	}
@@ -54,12 +54,12 @@ func ConnectToDatabase(settings Settings) (repo Repository) {
 	return
 }
 
-func (repo Repository) InsertEvent(e Event) error {
+func (repo SqlRepository) InsertEvent(e Event) error {
 	jsoncontent, err := json.Marshal(e.Content)
 	if err != nil {
 		return err
 	}
 
-	_, err = repo.eventInsertStmt.Exec(e.Id.String(), e.Recieved.Format(time.RFC3339), e.Exchange, e.RoutingKey, jsoncontent)
+	_, err = repo.eventInsertStmt.Exec(e.Id.String(), e.Received.Format(time.RFC3339), e.Exchange, e.RoutingKey, jsoncontent)
 	return err
 }

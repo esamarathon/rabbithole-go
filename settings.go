@@ -12,11 +12,8 @@ type Settings struct {
 		Debug bool
 	} `json:"Logging"`
 	ConnectionString string
-	RabbitMQ         struct {
-		ConnectionString string    `json:"ConnectionString"`
-		ChannelName      string    `json:"ChannelName"`
-		Bindings         []Binding `json:"Bindings"`
-	} `json:"RabbitMQ"`
+	RabbitMQ         RabbitSettings `json:"RabbitMQ"`
+	Outputs          []Output       `json:"Outputs"`
 }
 
 func (s Settings) String() string {
@@ -28,9 +25,30 @@ func (s Settings) String() string {
 	return string(bytes)
 }
 
+func (settings *Settings) Migrate() {
+	if settings.ConnectionString != "" {
+		settings.Outputs = append(settings.Outputs, Output{
+			Kind:             "sql",
+			ConnectionString: settings.ConnectionString,
+		})
+		settings.ConnectionString = "" // Disable it now that we handled it.
+	}
+}
+
+type RabbitSettings struct {
+	ConnectionString string    `json:"ConnectionString"`
+	ChannelName      string    `json:"ChannelName"`
+	Bindings         []Binding `json:"Bindings"`
+}
+
 type Binding struct {
 	Exchange string `json:"Exchange"`
 	Topic    string `json:"Topic"`
+}
+
+type Output struct {
+	Kind             string
+	ConnectionString string
 }
 
 func LoadSettings() (s Settings) {
@@ -53,13 +71,19 @@ func LoadSettings() (s Settings) {
 
 func (s *Settings) SetDefaults() {
 	s.Logging.Debug = false
-	s.ConnectionString = "user=postgres password=password dbname=rabbithole sslmode=verify-full"
+	s.ConnectionString = ""
 	s.RabbitMQ.ConnectionString = "amqp://localhost/"
 	s.RabbitMQ.ChannelName = "rabbithole"
 	s.RabbitMQ.Bindings = []Binding{
 		{
 			Exchange: "demo",
 			Topic:    "#",
+		},
+	}
+	s.Outputs = []Output{
+		{
+			Kind:             "sql",
+			ConnectionString: "user=postgres password=password dbname=rabbithole sslmode=verify-full",
 		},
 	}
 }
