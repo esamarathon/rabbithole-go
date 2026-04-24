@@ -70,7 +70,7 @@ func LoadSettings() (s Settings) {
 	s.SetDefaults()
 	file, err := os.Open("appsettings.json")
 	if err != nil {
-		log.Printf("Error reading config file: %s \n Progressing without it.", err)
+		Logf("Error reading config file: %s \n Progressing without it.", err)
 		return
 	}
 

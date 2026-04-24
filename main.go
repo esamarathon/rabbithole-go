@@ -2,8 +2,7 @@ package main
 
 import (
 	"encoding/json"
-	"log"
-	"os"
+
 	"sync"
 	"time"
 
@@ -11,19 +10,20 @@ import (
 	"github.com/streadway/amqp"
 )
 
+var (
+	settings Settings
+)
+
 func main() {
-	log.SetOutput(os.Stderr)
-	log.Println("Starting Rabbithole")
+	DebugLogln("Starting Rabbithole")
 	defer func() {
-		log.Println("Shutting down.")
+		DebugLogln("Shutting down.")
 	}()
 
-	settings := LoadSettings()
+	settings = LoadSettings()
 
-	if (settings.Logging.Debug) {
-		log.Println("Settings: ")
-		log.Println(settings)
-	}
+	DebugLogln("Settings: ")
+	DebugLogln(settings)
 
 	events := make(chan Event)
 	wg := new(sync.WaitGroup)
@@ -43,14 +43,14 @@ func main() {
 	
 	wg.Wait()
 	stream.Close()
-	log.Println("End of message queue.")
+	DebugLogln("End of message queue.")
 }
 
 func Transform(messages <-chan amqp.Delivery, events chan<- Event) {
 	defer close(events)
 
 	for msg := range messages {
-		log.Println("Incoming message.")
+		DebugLogln("Incoming message.")
 		var content any
 		content = make(map[string]interface{})
 		err := json.Unmarshal(msg.Body, &content)
@@ -75,10 +75,10 @@ func HandleOutput(output Output, events <-chan Event, wg *sync.WaitGroup) {
 	defer wg.Done()
 
 	repo := MakeRepository(output)
-	log.Printf("Setup complete. Starting message handling loop for %s, \n", output.Kind)
+	DebugLogf("Setup complete. Starting message handling loop for %s, \n", output.Kind)
 
 	for event := range events {
-		log.Printf("Storing message from %s (%s)", event.Exchange, event.RoutingKey)
+		DebugLogf("Storing message from %s (%s)", event.Exchange, event.RoutingKey)
 		repo.InsertEvent(event)
 	}
 }
