@@ -38,7 +38,9 @@ Application comes with the following equivalent default configuration
         "ChannelName": "rabbithole",
         "Bindings": [
             {
-                "Exchange": "demo",
+                "Exchange": {
+                    "Name": "demo"
+                },
                 "Topic": "#"
             }
         ]

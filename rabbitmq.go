@@ -10,7 +10,7 @@ func Listen(conn *amqp.Connection, settings RabbitSettings) RabbitStream {
 	ch, q := PrepareListeningQueue(conn, settings)
 	for _, b := range settings.Bindings {
 		DeclareExchange(ch, b)
-		ch.QueueBind(q.Name, b.Topic, b.Exchange, false, nil)
+		ch.QueueBind(q.Name, b.Topic, b.Exchange.Name, false, nil)
 	}
 
 	msgs, _ := ch.Consume(
@@ -37,7 +37,7 @@ func DeclareExchange(ch *amqp.Channel, b Binding) {
 	// exclusive
 	// no-wait
 	// arguments
-	err := ch.ExchangeDeclare(b.Exchange, amqp.ExchangeTopic, true, true, false, false, nil)
+	err := ch.ExchangeDeclare(b.Exchange.Name, amqp.ExchangeTopic, b.Exchange.Durable, b.Exchange.AutoDelete, false, false, b.Exchange.Arguments)
 	if err != nil {
 		log.Fatal("Failed to declare exchange. ", err)
 	}

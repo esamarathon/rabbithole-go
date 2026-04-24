@@ -11,9 +11,8 @@ type Settings struct {
 	Logging struct {
 		Debug bool
 	} `json:"Logging"`
-	ConnectionString string
-	RabbitMQ         RabbitSettings `json:"RabbitMQ"`
-	Outputs          []Output       `json:"Outputs"`
+	RabbitMQ RabbitSettings `json:"RabbitMQ"`
+	Outputs  []Output       `json:"Outputs"`
 }
 
 func (s Settings) String() string {
@@ -25,16 +24,6 @@ func (s Settings) String() string {
 	return string(bytes)
 }
 
-func (settings *Settings) Migrate() {
-	if settings.ConnectionString != "" {
-		settings.Outputs = append(settings.Outputs, Output{
-			Kind:             "sql",
-			ConnectionString: settings.ConnectionString,
-		})
-		settings.ConnectionString = "" // Disable it now that we handled it.
-	}
-}
-
 type RabbitSettings struct {
 	ConnectionString string    `json:"ConnectionString"`
 	ChannelName      string    `json:"ChannelName"`
@@ -42,8 +31,34 @@ type RabbitSettings struct {
 }
 
 type Binding struct {
-	Exchange string `json:"Exchange"`
-	Topic    string `json:"Topic"`
+	Exchange Exchange `json:"Exchange"`
+	Topic    string   `json:"Topic"`
+}
+
+type Exchange struct {
+	Name       string                 `json:"Name"`
+	Durable    bool                   `json:"Durable"`
+	AutoDelete bool                   `json:"AutoDelete"`
+	Arguments  map[string]interface{} `json:"Arguments"`
+}
+
+func (e *Exchange) UnmarshalJSON(data []byte) error {
+	type ExchangeAlias Exchange
+	test := &ExchangeAlias{
+		Durable:    true,
+		AutoDelete: true,
+	}
+
+	err := json.Unmarshal(data, test)
+	if err != nil {
+		err2 := json.Unmarshal(data, &test.Name)
+		if err2 != nil {
+			return err //Yes, return err. err2 is only to see if this fallback method worked. If that also failed, we want original error.
+		}
+	}
+
+	*e = Exchange(*test)
+	return nil
 }
 
 type Output struct {
@@ -71,13 +86,14 @@ func LoadSettings() (s Settings) {
 
 func (s *Settings) SetDefaults() {
 	s.Logging.Debug = false
-	s.ConnectionString = ""
 	s.RabbitMQ.ConnectionString = "amqp://localhost/"
 	s.RabbitMQ.ChannelName = "rabbithole"
 	s.RabbitMQ.Bindings = []Binding{
 		{
-			Exchange: "demo",
-			Topic:    "#",
+			Exchange: Exchange{
+				Name: "demo",
+			},
+			Topic: "#",
 		},
 	}
 	s.Outputs = []Output{

@@ -19,7 +19,6 @@ func main() {
 	}()
 
 	settings := LoadSettings()
-	settings.Migrate()
 
 	if (settings.Logging.Debug) {
 		log.Println("Settings: ")
