@@ -1,6 +1,20 @@
 name: publish
 
-on: [push]
+on:
+  schedule:
+    - cron: '0 3 * * 0'
+  push:
+    branches: [ "master" ]
+    # Publish semver tags as releases.
+    tags: [ 'v*.*.*' ]
+  pull_request:
+    branches: [ "master" ]
+
+env:
+  # Use docker.io for Docker Hub if empty
+  REGISTRY: ghcr.io
+  # github.repository as <account>/<repo>
+  IMAGE_NAME: esamarathon/rabbithole #${{ github.repository }}
 
 jobs:
   publish-web-app-image:
@@ -17,4 +31,8 @@ jobs:
       - name: Build docker image for application
         run: |
           docker compose build app
-          docker push ghcr.io/esamarathon/rabbithole:latest
+          
+      - name: Push docker image
+        if: github.event_name != 'pull_request'
+        run: |
+          docker push ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest
